@@ -1,0 +1,1000 @@
+import { useState, useEffect, useRef } from "react";
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const TRANSACTIONS = [
+  { id:1,  desc:"Continente",       amount:47.30, category:"Supermercado",   date:"2ª feira", icon:"🛒" },
+  { id:2,  desc:"Galp Combustível", amount:62.00, category:"Transportes",    date:"2ª feira", icon:"⛽" },
+  { id:3,  desc:"Netflix",          amount:17.99, category:"Entretenimento", date:"3ª feira", icon:"📺" },
+  { id:4,  desc:"Café Central",     amount:3.20,  category:"Restauração",    date:"3ª feira", icon:"☕" },
+  { id:5,  desc:"Zara",             amount:34.95, category:"Compras",        date:"4ª feira", icon:"👕" },
+  { id:6,  desc:"Farmácia Saúde",   amount:12.40, category:"Saúde",          date:"5ª feira", icon:"💊" },
+  { id:7,  desc:"Uber",             amount:8.70,  category:"Transportes",    date:"5ª feira", icon:"🚗" },
+  { id:8,  desc:"Restaurante Mar",  amount:23.50, category:"Restauração",    date:"6ª feira", icon:"🍽️" },
+  { id:9,  desc:"Spotify",          amount:9.99,  category:"Entretenimento", date:"Sábado",   icon:"🎵" },
+  { id:10, desc:"Padaria Bonjour",  amount:5.60,  category:"Restauração",    date:"Domingo",  icon:"🥐" },
+];
+const SPEND_LAST_MONTH = 298.40;
+const MONTHLY_SPENDING = [
+  {month:"Jan",amount:1180},{month:"Fev",amount:1050},{month:"Mar",amount:1220},
+  {month:"Abr",amount:980},{month:"Mai",amount:1100},{month:"Jun",amount:890},
+];
+const CATEGORIES = [
+  {name:"Supermercado",  amount:47.30,color:"#3bdfb0",icon:"🛒"},
+  {name:"Transportes",   amount:70.70,color:"#0ea5e9",icon:"⛽"},
+  {name:"Restauração",   amount:32.30,color:"#f59e0b",icon:"🍽️"},
+  {name:"Entretenimento",amount:27.98,color:"#8b5cf6",icon:"📺"},
+  {name:"Compras",       amount:34.95,color:"#f43f5e",icon:"👕"},
+  {name:"Saúde",         amount:12.40,color:"#4ade80",icon:"💊"},
+];
+const SAVINGS_LEVELS = [
+  {id:"suave",   label:"Suave",   emoji:"🌱",desc:"Mal dás por ela",    rate:0.30,color:"#4ade80"},
+  {id:"moderado",label:"Moderado",emoji:"💪",desc:"Equilíbrio perfeito",rate:0.60,color:"#f59e0b"},
+  {id:"intenso", label:"Intenso", emoji:"🚀",desc:"Modo poupança total",rate:1.00,color:"#f43f5e"},
+];
+const BANKS = [
+  {id:"cgd",       name:"Caixa Geral de Depósitos",short:"CGD",       color:"#006633",emoji:"🏦",iban:"PT50 0035 0000"},
+  {id:"bcp",       name:"Millennium BCP",           short:"BCP",       color:"#CC0000",emoji:"🏛️",iban:"PT50 0033 0000"},
+  {id:"novobanco", name:"Novo Banco",               short:"NovoBanco", color:"#e6b800",emoji:"🏢",iban:"PT50 0007 0000"},
+  {id:"santander", name:"Santander Portugal",       short:"Santander", color:"#EC0000",emoji:"🔴",iban:"PT50 0018 0000"},
+  {id:"bpi",       name:"BPI",                      short:"BPI",       color:"#003B8E",emoji:"🔵",iban:"PT50 0010 0000"},
+  {id:"montepio",  name:"Montepio Geral",           short:"Montepio",  color:"#00529B",emoji:"🏗️",iban:"PT50 0036 0000"},
+  {id:"activobank",name:"ActivoBank",               short:"ActivoBank",color:"#00AEEF",emoji:"📱",iban:"PT50 0002 0000"},
+  {id:"abanca",    name:"Abanca",                   short:"Abanca",    color:"#0066CC",emoji:"🌊",iban:"PT50 0086 0000"},
+];
+const VALUE_PROPS = [
+  {emoji:"⚡",title:"Poupança automática",   body:"Analisamos os teus gastos semanalmente e guardamos a diferença sem que precises de fazer nada."},
+  {emoji:"📊",title:"Comparação inteligente",body:"Comparamos cada semana com o mês anterior para perceber quanto podes poupar de forma segura."},
+  {emoji:"🎯",title:"Os teus objetivos",     body:"Define até 3 objetivos e vê como crescem automaticamente semana após semana."},
+  {emoji:"🪙",title:"Round-ups automáticos", body:"O troco de cada compra vai direto para a tua poupança. Cada cêntimo conta."},
+  {emoji:"🔒",title:"100% seguro",           body:"Ligação via Open Banking PSD2. Só lemos as tuas transações — nunca movemos dinheiro sem ti."},
+];
+const DEFAULT_GOALS = [
+  {id:1,name:"Férias no Algarve",  target:800, emoji:"🏖️",color:"#06b6d4",pct:50},
+  {id:2,name:"Fundo de Emergência",target:1200,emoji:"🛡️",color:"#8b5cf6",pct:30},
+  {id:3,name:"MacBook novo",       target:1500,emoji:"💻",color:"#f59e0b",pct:20},
+];
+const HISTORY = [
+  {id:1,type:"auto",   amount:14.20,date:"5 Mai", week:"Semana 28 Abr",note:"Gastaste menos 23,67€ vs mês anterior",level:"Moderado"},
+  {id:2,type:"roundup",amount:3.18, date:"5 Mai", week:"Semana 28 Abr",note:"10 transações arredondadas"},
+  {id:3,type:"auto",   amount:8.90, date:"28 Abr",week:"Semana 21 Abr",note:"Gastaste menos 14,83€ vs mês anterior",level:"Moderado"},
+  {id:4,type:"roundup",amount:4.52, date:"28 Abr",week:"Semana 21 Abr",note:"12 transações arredondadas"},
+  {id:5,type:"auto",   amount:22.80,date:"22 Abr",week:"Semana 14 Abr",note:"Gastaste menos 38,00€ vs mês anterior",level:"Moderado"},
+  {id:6,type:"skip",   amount:0,    date:"14 Abr",week:"Semana 7 Abr", note:"Gastaste mais do que no mês anterior — sem poupança automática"},
+  {id:7,type:"auto",   amount:31.50,date:"7 Abr", week:"Semana 31 Mar",note:"Gastaste menos 52,50€ vs mês anterior",level:"Moderado"},
+  {id:8,type:"roundup",amount:5.11, date:"7 Abr", week:"Semana 31 Mar",note:"14 transações arredondadas"},
+];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const roundUp=(a)=>parseFloat((Math.ceil(a)-a).toFixed(2));
+const sumRU=(txs)=>parseFloat(txs.reduce((s,t)=>s+roundUp(t.amount),0).toFixed(2));
+const fmt=(n)=>n.toFixed(2).replace(".",",")+"\u20AC";
+const maskIban=(p)=>p+" **** **** 1234";
+const totalCatSpend=CATEGORIES.reduce((s,c)=>s+c.amount,0);
+function pwStrength(pw){
+  if(!pw)return{score:0,label:"",color:""};
+  let s=0;
+  if(pw.length>=8)s++;if(pw.length>=12)s++;
+  if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;
+  if(s<=1)return{score:s,label:"Fraca",color:"#f43f5e"};
+  if(s<=3)return{score:s,label:"Razoável",color:"#f59e0b"};
+  return{score:s,label:"Forte",color:"#3bdfb0"};
+}
+
+function useCountUp(target,duration=1000){
+  const [v,setV]=useState(0);const r=useRef(null);
+  useEffect(()=>{r.current=null;let raf;
+    function step(ts){if(!r.current)r.current=ts;const p=Math.min((ts-r.current)/duration,1);setV(parseFloat((target*p).toFixed(2)));if(p<1)raf=requestAnimationFrame(step);}
+    raf=requestAnimationFrame(step);return()=>cancelAnimationFrame(raf);
+  },[target,duration]);return v;
+}
+
+// ─── UI ATOMS ────────────────────────────────────────────────────────────────
+const GS=`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap'); *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}} @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}} @keyframes pop{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}} @keyframes slideDown{from{transform:translateX(-50%) translateY(-16px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}} input[type=range]{height:4px}`;
+
+function Toggle({on,onChange,color="#3bdfb0"}){
+  return <div onClick={()=>onChange(!on)} style={{width:46,height:26,borderRadius:13,background:on?color:"#1e3a5f",position:"relative",cursor:"pointer",transition:"background 0.3s",flexShrink:0}}>
+    <div style={{position:"absolute",top:4,left:on?24:4,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.25s",boxShadow:"0 1px 4px rgba(0,0,0,0.3)"}}/>
+  </div>;
+}
+function CircleProgress({pct,color,size=56}){
+  const r=(size-8)/2,circ=2*Math.PI*r,dash=(pct/100)*circ;
+  return <svg width={size} height={size} style={{transform:"rotate(-90deg)",flexShrink:0}}>
+    <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1e2a3a" strokeWidth={6}/>
+    <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={6} strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" style={{transition:"stroke-dasharray 1s ease"}}/>
+  </svg>;
+}
+function ProgressDots({total,current}){
+  return <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:28}}>
+    {Array.from({length:total}).map((_,i)=>(
+      <div key={i} style={{width:i===current?20:7,height:7,borderRadius:4,background:i===current?"#3bdfb0":i<current?"#3bdfb060":"#1e3a5f",transition:"all 0.3s"}}/>
+    ))}
+  </div>;
+}
+function PrimaryBtn({children,onClick,disabled=false}){
+  return <button onClick={onClick} disabled={disabled} style={{background:disabled?"#1e3a5f":"linear-gradient(135deg,#3bdfb0,#0ea5e9)",color:disabled?"#475569":"#0a1628",border:"none",borderRadius:16,padding:"15px 0",width:"100%",fontSize:15,fontWeight:800,cursor:disabled?"not-allowed":"pointer",transition:"all 0.2s"}}>{children}</button>;
+}
+function GhostBtn({children,onClick}){
+  return <button onClick={onClick} style={{background:"transparent",color:"#3bdfb0",border:"2px solid #3bdfb030",borderRadius:16,padding:"13px 0",width:"100%",fontSize:14,fontWeight:700,cursor:"pointer",marginTop:10}}>
+    {children}
+  </button>;
+}
+function InputField({label,type="text",value,onChange,placeholder,error,hint,suffix}){
+  const [show,setShow]=useState(false);
+  const t=type==="password"?(show?"text":"password"):type;
+  return <div style={{marginBottom:16}}>
+    {label&&<div style={{fontSize:13,fontWeight:600,color:"#94a3b8",marginBottom:6}}>{label}</div>}
+    <div style={{position:"relative"}}>
+      <input type={t} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+        style={{background:"#0a1628",border:`1px solid ${error?"#f43f5e":"#1e3a5f"}`,borderRadius:14,padding:"14px 16px",color:"#e2e8f0",fontSize:15,width:"100%",outline:"none",paddingRight:type==="password"?48:16,transition:"border-color 0.2s"}}/>
+      {type==="password"&&<button onClick={()=>setShow(s=>!s)} style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#475569",cursor:"pointer",fontSize:18,padding:0}}>{show?"🙈":"👁️"}</button>}
+    </div>
+    {error&&<div style={{fontSize:12,color:"#f43f5e",marginTop:5}}>{error}</div>}
+    {hint&&!error&&<div style={{fontSize:12,color:"#475569",marginTop:5}}>{hint}</div>}
+  </div>;
+}
+function Badge({children,color="#3bdfb0"}){
+  return <div style={{display:"inline-flex",alignItems:"center",gap:5,background:color+"18",borderRadius:20,padding:"3px 10px",marginBottom:8}}>
+    <span style={{fontSize:11,fontWeight:700,color,textTransform:"uppercase",letterSpacing:"0.5px"}}>{children}</span>
+  </div>;
+}
+function Wrap({children}){
+  return <div style={{minHeight:"100vh",background:"#0a1628",display:"flex",flexDirection:"column",alignItems:"center",fontFamily:"'DM Sans','Segoe UI',sans-serif",color:"#e2e8f0",padding:"0 0 40px"}}><style>{GS}</style>{children}</div>;
+}
+function Inner({children,center=false,pt=28}){
+  return <div style={{width:"100%",maxWidth:420,padding:`${pt}px 24px 0`,flex:1,display:"flex",flexDirection:"column",justifyContent:center?"center":"flex-start"}}>{children}</div>;
+}
+function TopBar({left,right}){
+  return <div style={{padding:"32px 24px 0",width:"100%",maxWidth:420,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+    {left||<div/>}{right||<div/>}
+  </div>;
+}
+const Logo=()=><div style={{fontSize:22,fontWeight:800,color:"#fff",letterSpacing:"-0.5px"}}>Aura</div>;
+const StepLabel=({current,total})=><div style={{fontSize:12,color:"#475569"}}>Passo {current} de {total}</div>;
+const H1=({children})=><div style={{fontSize:26,fontWeight:800,color:"#fff",letterSpacing:"-0.5px",marginBottom:8,lineHeight:1.2}}>{children}</div>;
+const Sub=({children})=><div style={{fontSize:14,color:"#64748b",lineHeight:1.6,marginBottom:24}}>{children}</div>;
+
+// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+function Onboarding({onComplete}){
+  const [step,setStep]     = useState("welcome");
+  // Auth fields
+  const [authName,setAuthName]   = useState("");
+  const [authEmail,setAuthEmail] = useState("");
+  const [authPw,setAuthPw]       = useState("");
+  const [authPw2,setAuthPw2]     = useState("");
+  const [verifyCode,setVerifyCode] = useState("");
+  const [loginEmail,setLoginEmail] = useState("");
+  const [loginPw,setLoginPw]       = useState("");
+  const [errors,setErrors]       = useState({});
+  // Bank
+  const [bank,setBank]           = useState(null);
+  const [connProgress,setConnProgress] = useState(0);
+  const [loadProgress,setLoadProgress] = useState(0);
+  const [vpIdx,setVpIdx]         = useState(0);
+  // Prefs
+  const [level,setLevel]         = useState("moderado");
+  const [roundupOn,setRoundupOn] = useState(null);
+
+  const spendDiff=parseFloat((SPEND_LAST_MONTH-TRANSACTIONS.reduce((s,t)=>s+t.amount,0)).toFixed(2));
+  const levelEst=id=>{const r={suave:0.30,moderado:0.60,intenso:1.00};return spendDiff>0?parseFloat((spendDiff*r[id]).toFixed(2)):0;};
+  const pw=pwStrength(authPw);
+
+  function validateRegister(){
+    const e={};
+    if(!authName.trim()||authName.trim().split(" ").length<2)e.name="Introduz o teu nome completo";
+    if(!authEmail.includes("@")||!authEmail.includes("."))e.email="Email inválido";
+    if(authPw.length<8)e.pw="Mínimo 8 caracteres";
+    if(authPw!==authPw2)e.pw2="As passwords não coincidem";
+    setErrors(e);return Object.keys(e).length===0;
+  }
+  function validateLogin(){
+    const e={};
+    if(!loginEmail.includes("@"))e.lemail="Email inválido";
+    if(!loginPw)e.lpw="Introduz a tua password";
+    setErrors(e);return Object.keys(e).length===0;
+  }
+
+  function startConnect(){
+    setStep("bank-connecting");setConnProgress(0);
+    let p=0;const willErr=Math.random()<0.25;
+    const iv=setInterval(()=>{
+      p+=Math.random()*14+4;
+      if(willErr&&p>55){clearInterval(iv);setConnProgress(57);setTimeout(()=>setStep("bank-error"),300);return;}
+      if(p>=100){p=100;clearInterval(iv);setTimeout(()=>{setStep("bank-loading");startLoading();},400);}
+      setConnProgress(Math.min(p,100));
+    },200);
+  }
+  function startLoading(){
+    setLoadProgress(0);setVpIdx(0);let p=0,vi=0;
+    const piv=setInterval(()=>{vi=(vi+1)%VALUE_PROPS.length;setVpIdx(vi);},1400);
+    const iv=setInterval(()=>{p+=Math.random()*6+2;if(p>=100){p=100;clearInterval(iv);clearInterval(piv);setTimeout(()=>setStep("choose-level"),600);}setLoadProgress(Math.min(p,100));},220);
+  }
+
+  // ── WELCOME + AUTH (merged) ───────────────────────────────────────────────
+  if(step==="welcome") return (
+    <Wrap>
+      <Inner pt={48}>
+        {/* Logo */}
+        <div style={{textAlign:"center",marginBottom:36}}>
+          <div style={{width:76,height:76,borderRadius:22,background:"linear-gradient(135deg,#3bdfb0,#0ea5e9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 16px",boxShadow:"0 20px 60px #3bdfb035"}}>💰</div>
+          <div style={{fontSize:30,fontWeight:800,color:"#fff",letterSpacing:"-1px"}}>Aura</div>
+          <div style={{fontSize:14,color:"#64748b",marginTop:4}}>A tua poupança inteligente</div>
+        </div>
+
+        {/* Value props */}
+        <div style={{display:"flex",flexDirection:"column",gap:16,marginBottom:36}}>
+          {[["⚡","Poupa automaticamente, sem esforço"],["📊","Compara os teus gastos semana a semana"],["🎯","Define objetivos e vê-os crescer"]].map(([e,t])=>(
+            <div key={t} style={{display:"flex",alignItems:"center",gap:14}}>
+              <span style={{fontSize:24,width:32,textAlign:"center",flexShrink:0}}>{e}</span>
+              <span style={{fontSize:14,fontWeight:600,color:"#cbd5e1"}}>{t}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Primary CTA */}
+        <PrimaryBtn onClick={()=>setStep("register-name")}>Criar conta com email</PrimaryBtn>
+
+        {/* Divider */}
+        <div style={{display:"flex",alignItems:"center",gap:12,margin:"18px 0"}}>
+          <div style={{flex:1,height:1,background:"#1e3a5f"}}/>
+          <span style={{fontSize:12,color:"#475569"}}>ou cria conta com</span>
+          <div style={{flex:1,height:1,background:"#1e3a5f"}}/>
+        </div>
+
+        {/* Social signup buttons */}
+        <div style={{display:"flex",gap:10,marginBottom:20}}>
+          {[
+            {label:"Google",  bg:"#fff",    color:"#1f2937", icon:<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>},
+            {label:"Apple",   bg:"#000",    color:"#fff",    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>},
+            {label:"Facebook",bg:"#1877F2", color:"#fff",    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>},
+          ].map(({label,bg,color,icon})=>(
+            <button key={label} onClick={()=>onComplete({bank:BANKS[0],level:"moderado",roundupOn:true,user:{name:"Utilizador "+label,email:`user@${label.toLowerCase()}.com`}})}
+              style={{flex:1,background:bg,border:"1px solid #1e3a5f",borderRadius:14,padding:"13px 0",display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",color,fontSize:13,fontWeight:700}}>
+              {icon}
+            </button>
+          ))}
+        </div>
+
+        {/* Login link */}
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <span style={{fontSize:14,color:"#64748b"}}>Já tens conta? </span>
+          <span onClick={()=>setStep("login")} style={{fontSize:14,color:"#3bdfb0",fontWeight:700,cursor:"pointer"}}>Entrar</span>
+        </div>
+
+        <div style={{fontSize:11,color:"#334155",textAlign:"center",lineHeight:1.6}}>
+          Ao criar conta, aceitas os nossos{" "}
+          <span style={{color:"#475569",cursor:"pointer"}}>Termos de Serviço</span>{" "}e{" "}
+          <span style={{color:"#475569",cursor:"pointer"}}>Política de Privacidade</span>.
+        </div>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── REGISTER: NAME ───────────────────────────────────────────────────────
+  if(step==="register-name") return (
+    <Wrap>
+      <TopBar left={<button onClick={()=>setStep("auth-choice")} style={{background:"none",border:"none",color:"#64748b",fontSize:14,cursor:"pointer",padding:0}}>← Voltar</button>} right={<StepLabel current={1} total={5}/>}/>
+      <Inner pt={28}>
+        <ProgressDots total={5} current={0}/>
+        <div style={{fontSize:28,marginBottom:12}}>😊</div>
+        <H1>Como te chamas?</H1>
+        <Sub>Vamos personalizar a tua experiência.</Sub>
+        <InputField label="Nome completo" value={authName} onChange={v=>{setAuthName(v);setErrors({});}} placeholder="ex: João Pereira" error={errors.name}/>
+        <div style={{marginTop:8}}/>
+        <PrimaryBtn onClick={()=>{if(!authName.trim()||authName.trim().split(" ").length<2){setErrors({name:"Introduz o teu nome completo"});}else{setErrors({});setStep("register-email");}}} disabled={!authName.trim()}>
+          Continuar
+        </PrimaryBtn>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── REGISTER: EMAIL ──────────────────────────────────────────────────────
+  if(step==="register-email") return (
+    <Wrap>
+      <TopBar left={<button onClick={()=>setStep("register-name")} style={{background:"none",border:"none",color:"#64748b",fontSize:14,cursor:"pointer",padding:0}}>← Voltar</button>} right={<StepLabel current={1} total={5}/>}/>
+      <Inner pt={28}>
+        <ProgressDots total={5} current={0}/>
+        <div style={{fontSize:28,marginBottom:12}}>📧</div>
+        <H1>O teu email</H1>
+        <Sub>Usa este email para entrar na app e receber as tuas notificações de poupança.</Sub>
+        <InputField label="Email" type="email" value={authEmail} onChange={v=>{setAuthEmail(v);setErrors({});}} placeholder="joao@email.com" error={errors.email}/>
+        <div style={{marginTop:8}}/>
+        <PrimaryBtn onClick={()=>{if(!authEmail.includes("@")||!authEmail.includes(".")){setErrors({email:"Email inválido"});}else{setErrors({});setStep("register-password");}}} disabled={!authEmail}>
+          Continuar
+        </PrimaryBtn>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── REGISTER: PASSWORD ───────────────────────────────────────────────────
+  if(step==="register-password") return (
+    <Wrap>
+      <TopBar left={<button onClick={()=>setStep("register-email")} style={{background:"none",border:"none",color:"#64748b",fontSize:14,cursor:"pointer",padding:0}}>← Voltar</button>} right={<StepLabel current={1} total={5}/>}/>
+      <Inner pt={28}>
+        <ProgressDots total={5} current={0}/>
+        <div style={{fontSize:28,marginBottom:12}}>🔐</div>
+        <H1>Cria uma password</H1>
+        <Sub>Mínimo 8 caracteres. Quanto mais forte, melhor.</Sub>
+        <InputField label="Password" type="password" value={authPw} onChange={v=>{setAuthPw(v);setErrors({});}} placeholder="A tua password" error={errors.pw}
+          hint={authPw?`Segurança: ${pw.label}`:""}/>
+        {/* Strength bar */}
+        {authPw&&<div style={{marginBottom:16,marginTop:-8}}>
+          <div style={{background:"#1e3a5f",borderRadius:99,height:5,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${(pw.score/5)*100}%`,background:pw.color,borderRadius:99,transition:"all 0.3s"}}/>
+          </div>
+        </div>}
+        <InputField label="Confirmar password" type="password" value={authPw2} onChange={v=>{setAuthPw2(v);setErrors({});}} placeholder="Repete a password" error={errors.pw2}/>
+        <PrimaryBtn onClick={()=>{
+          const e={};
+          if(authPw.length<8)e.pw="Mínimo 8 caracteres";
+          if(authPw!==authPw2)e.pw2="As passwords não coincidem";
+          if(Object.keys(e).length){setErrors(e);}else{setErrors({});setStep("register-verify");}
+        }} disabled={!authPw||!authPw2}>
+          Criar conta
+        </PrimaryBtn>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── REGISTER: EMAIL VERIFY ───────────────────────────────────────────────
+  if(step==="register-verify") return (
+    <Wrap>
+      <TopBar left={<div/>} right={<StepLabel current={1} total={5}/>}/>
+      <Inner pt={28}>
+        <ProgressDots total={5} current={0}/>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:48,marginBottom:16}}>📬</div>
+          <H1>Verifica o teu email</H1>
+          <Sub>Enviámos um código de 6 dígitos para <strong style={{color:"#fff"}}>{authEmail}</strong>. Introduz-o abaixo para ativar a tua conta.</Sub>
+        </div>
+        {/* 6-digit code — visual squares over a hidden input */}
+        <div style={{position:"relative",marginBottom:24}}>
+          <input
+            autoFocus type="tel" inputMode="numeric" maxLength={6}
+            value={verifyCode} onChange={e=>setVerifyCode(e.target.value.replace(/\D/g,"").slice(0,6))}
+            style={{position:"absolute",inset:0,opacity:0,cursor:"text",zIndex:2,fontSize:1}}
+          />
+          <div style={{display:"flex",gap:10,justifyContent:"center",pointerEvents:"none"}}>
+            {Array.from({length:6}).map((_,i)=>(
+              <div key={i} style={{width:46,height:56,borderRadius:14,background:"#0a1628",border:`2px solid ${i===verifyCode.length?"#3bdfb0":verifyCode.length>i?"#3bdfb070":"#1e3a5f"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:800,color:"#3bdfb0",transition:"border-color 0.2s"}}>
+                {verifyCode[i]||""}
+              </div>
+            ))}
+          </div>
+        </div>
+        {errors.code&&<div style={{color:"#f43f5e",fontSize:12,marginBottom:12,textAlign:"center"}}>{errors.code}</div>}
+        <PrimaryBtn onClick={()=>{
+          if(verifyCode.length!==6){setErrors({code:"Código inválido — tenta de novo"});}
+          else{setErrors({});setStep("bank-list");}
+        }} disabled={verifyCode.length!==6}>
+          Verificar e continuar
+        </PrimaryBtn>
+        <div style={{textAlign:"center",marginTop:16}}>
+          <span style={{fontSize:13,color:"#475569"}}>Não recebeste? </span>
+          <span onClick={()=>setErrors({code:""})} style={{fontSize:13,color:"#3bdfb0",cursor:"pointer",fontWeight:700}}>Reenviar código</span>
+        </div>
+        {/* Demo helper */}
+        <div style={{background:"#f59e0b10",borderRadius:12,padding:"10px 14px",marginTop:20,border:"1px solid #f59e0b30"}}>
+          <div style={{fontSize:11,color:"#f59e0b",fontWeight:700,marginBottom:3}}>DEMO — código de teste</div>
+          <div style={{fontSize:13,color:"#94a3b8"}}>Usa <strong style={{color:"#fff",letterSpacing:"2px"}}>123456</strong> para avançar</div>
+        </div>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── LOGIN ────────────────────────────────────────────────────────────────
+  if(step==="login") return (
+    <Wrap>
+      <TopBar left={<button onClick={()=>setStep("auth-choice")} style={{background:"none",border:"none",color:"#64748b",fontSize:14,cursor:"pointer",padding:0}}>← Voltar</button>}/>
+      <Inner pt={28}>
+        <div style={{fontSize:28,marginBottom:12}}>🔑</div>
+        <H1>Bem-vindo de volta!</H1>
+        <Sub>Entra na tua conta Aura</Sub>
+        <InputField label="Email" type="email" value={loginEmail} onChange={v=>{setLoginEmail(v);setErrors({});}} placeholder="joao@email.com" error={errors.lemail}/>
+        <InputField label="Password" type="password" value={loginPw} onChange={v=>{setLoginPw(v);setErrors({});}} placeholder="A tua password" error={errors.lpw}/>
+        <div style={{textAlign:"right",marginTop:-8,marginBottom:20}}>
+          <span style={{fontSize:13,color:"#3bdfb0",cursor:"pointer",fontWeight:600}}>Esqueceste a password?</span>
+        </div>
+        <PrimaryBtn onClick={()=>{
+          if(validateLogin()){
+            // Simulate login — go straight to app
+            onComplete({bank:BANKS[0],level:"moderado",roundupOn:true,user:{name:"João Pereira",email:loginEmail}});
+          }
+        }}>Entrar</PrimaryBtn>
+        <GhostBtn onClick={()=>setStep("auth-choice")}>Criar conta nova</GhostBtn>
+        {/* Forgot password flow hint */}
+        <div style={{background:"#3bdfb010",borderRadius:12,padding:"10px 14px",marginTop:20,border:"1px solid #3bdfb030"}}>
+          <div style={{fontSize:11,color:"#3bdfb0",fontWeight:700,marginBottom:3}}>DEMO — acesso rápido</div>
+          <div style={{fontSize:13,color:"#94a3b8"}}>Qualquer email + password entram directamente</div>
+        </div>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── FORGOT PASSWORD ──────────────────────────────────────────────────────
+  if(step==="forgot-pw") return (
+    <Wrap>
+      <TopBar left={<button onClick={()=>setStep("login")} style={{background:"none",border:"none",color:"#64748b",fontSize:14,cursor:"pointer",padding:0}}>← Voltar</button>}/>
+      <Inner pt={28}>
+        <div style={{fontSize:28,marginBottom:12}}>🔒</div>
+        <H1>Recuperar password</H1>
+        <Sub>Indica o teu email e enviamos um link para criares uma nova password.</Sub>
+        <InputField label="Email" type="email" value={loginEmail} onChange={setLoginEmail} placeholder="joao@email.com"/>
+        <PrimaryBtn onClick={()=>setStep("forgot-sent")}>Enviar link de recuperação</PrimaryBtn>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── BANK LIST ────────────────────────────────────────────────────────────
+  if(step==="bank-list") return (
+    <Wrap>
+      <TopBar left={<Logo/>} right={<StepLabel current={2} total={5}/>}/>
+      <Inner pt={28}>
+        <ProgressDots total={5} current={1}/>
+        <H1>Liga o teu banco</H1>
+        <Sub>Ligamos de forma segura via Open Banking (PSD2) para analisar os teus gastos.</Sub>
+        <div style={{flex:1,overflowY:"auto"}}>
+          {BANKS.map(b=>(
+            <div key={b.id} onClick={()=>{setBank(b);setStep("bank-consent");}} style={{display:"flex",alignItems:"center",gap:14,background:"#0a1628",borderRadius:14,padding:"14px 16px",cursor:"pointer",border:"1px solid #1e3a5f",marginBottom:10}}>
+              <div style={{width:44,height:44,borderRadius:12,background:b.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{b.emoji}</div>
+              <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>{b.name}</div><div style={{fontSize:12,color:"#475569"}}>Open Banking · PSD2</div></div>
+              <div style={{fontSize:18,color:"#3bdfb0"}}>›</div>
+            </div>
+          ))}
+        </div>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── BANK CONSENT ─────────────────────────────────────────────────────────
+  if(step==="bank-consent") return (
+    <Wrap>
+      <TopBar left={<button onClick={()=>setStep("bank-list")} style={{background:"none",border:"none",color:"#64748b",fontSize:14,cursor:"pointer",padding:0}}>← Voltar</button>} right={<StepLabel current={2} total={5}/>}/>
+      <Inner pt={28}>
+        <ProgressDots total={5} current={1}/>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{width:64,height:64,borderRadius:18,background:bank.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 12px"}}>{bank.emoji}</div>
+          <div style={{fontSize:20,fontWeight:800,color:"#fff"}}>{bank.name}</div>
+          <div style={{fontSize:13,color:"#64748b",marginTop:4}}>Ligação segura via PSD2</div>
+        </div>
+        <div style={{background:"#0a1628",borderRadius:16,padding:"16px",marginBottom:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#e2e8f0",marginBottom:12}}>A Aura vai aceder a:</div>
+          {[["✅","Histórico de transações","#3bdfb0"],["✅","Saldo da conta (leitura)","#3bdfb0"],["❌","Transferências ou pagamentos","#f43f5e"],["❌","Credenciais bancárias","#f43f5e"]].map(([i,t,c])=>(
+            <div key={t} style={{display:"flex",gap:10,marginBottom:10,alignItems:"center"}}><span>{i}</span><span style={{fontSize:13,color:c}}>{t}</span></div>
+          ))}
+        </div>
+        <div style={{fontSize:12,color:"#475569",lineHeight:1.7,marginBottom:20,padding:"12px 14px",background:"#111f3522",borderRadius:12,border:"1px solid #1e3a5f33"}}>
+          Ao continuar autorizo a Aura a aceder às minhas transações de acordo com a Diretiva Europeia PSD2, regulado pelo <strong style={{color:"#94a3b8"}}>Banco de Portugal</strong>.
+        </div>
+        <PrimaryBtn onClick={startConnect}>Autorizar e ligar</PrimaryBtn>
+        <GhostBtn onClick={()=>setStep("bank-list")}>Escolher outro banco</GhostBtn>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── BANK CONNECTING ──────────────────────────────────────────────────────
+  if(step==="bank-connecting") return (
+    <Wrap>
+      <Inner center>
+        <div style={{width:72,height:72,borderRadius:20,background:bank.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 24px"}}>{bank.emoji}</div>
+        <div style={{fontSize:18,fontWeight:800,color:"#fff",marginBottom:8,textAlign:"center"}}>A ligar ao {bank.short}…</div>
+        <div style={{fontSize:13,color:"#64748b",marginBottom:36,textAlign:"center"}}>
+          {connProgress<30?"A estabelecer ligação segura…":connProgress<60?"A autenticar com o banco…":connProgress<85?"A verificar permissões PSD2…":"A importar transações…"}
+        </div>
+        <div style={{width:"100%",background:"#1e3a5f",borderRadius:99,height:10,overflow:"hidden",marginBottom:12}}>
+          <div style={{height:"100%",width:`${connProgress}%`,background:"linear-gradient(90deg,#3bdfb0,#0ea5e9)",borderRadius:99,transition:"width 0.2s"}}/>
+        </div>
+        <div style={{fontSize:14,fontWeight:700,color:"#3bdfb0",textAlign:"center"}}>{Math.round(connProgress)}%</div>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── BANK ERROR ───────────────────────────────────────────────────────────
+  if(step==="bank-error") return (
+    <Wrap>
+      <Inner center>
+        <div style={{width:72,height:72,borderRadius:"50%",background:"#f43f5e15",border:"2px solid #f43f5e40",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 20px"}}>❌</div>
+        <div style={{fontSize:20,fontWeight:800,color:"#fff",marginBottom:8,textAlign:"center"}}>Ups! Algo correu mal</div>
+        <div style={{fontSize:13,color:"#64748b",lineHeight:1.7,marginBottom:12,textAlign:"center"}}>Não conseguimos ligar ao <strong style={{color:"#fff"}}>{bank.short}</strong>. Pode acontecer por:</div>
+        <div style={{background:"#0a1628",borderRadius:14,padding:"14px 16px",marginBottom:28,width:"100%"}}>
+          {["O banco pode estar em manutenção","Sessão de autenticação expirou","Problema temporário de ligação"].map((e,i)=>(
+            <div key={i} style={{display:"flex",gap:10,marginBottom:i<2?10:0}}><span style={{color:"#f59e0b"}}>•</span><span style={{fontSize:13,color:"#94a3b8"}}>{e}</span></div>
+          ))}
+        </div>
+        <PrimaryBtn onClick={startConnect}>🔄 Tentar novamente</PrimaryBtn>
+        <GhostBtn onClick={()=>setStep("bank-list")}>Escolher outro banco</GhostBtn>
+        <div style={{fontSize:12,color:"#475569",marginTop:16,textAlign:"center"}}>Se persistir, tenta mais tarde ou contacta o suporte.</div>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── BANK LOADING + VALUE PROPS ───────────────────────────────────────────
+  if(step==="bank-loading"){
+    const vp=VALUE_PROPS[vpIdx];
+    return (
+      <Wrap>
+        <Inner center>
+          <div key={vpIdx} style={{animation:"fadeIn 0.4s ease",marginBottom:48,textAlign:"center"}}>
+            <div style={{fontSize:56,marginBottom:16}}>{vp.emoji}</div>
+            <div style={{fontSize:22,fontWeight:800,color:"#fff",marginBottom:10,letterSpacing:"-0.5px"}}>{vp.title}</div>
+            <div style={{fontSize:14,color:"#64748b",lineHeight:1.7,maxWidth:300,margin:"0 auto"}}>{vp.body}</div>
+          </div>
+          <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:40}}>
+            {VALUE_PROPS.map((_,i)=><div key={i} style={{width:i===vpIdx?20:7,height:7,borderRadius:4,background:i===vpIdx?"#3bdfb0":"#1e3a5f",transition:"all 0.3s"}}/>)}
+          </div>
+          <div style={{width:"100%",background:"#1e3a5f",borderRadius:99,height:6,overflow:"hidden",marginBottom:10}}>
+            <div style={{height:"100%",width:`${loadProgress}%`,background:"linear-gradient(90deg,#3bdfb0,#0ea5e9)",borderRadius:99,transition:"width 0.3s"}}/>
+          </div>
+          <div style={{fontSize:12,color:"#475569",textAlign:"center"}}>A analisar as tuas transações… {Math.round(loadProgress)}%</div>
+        </Inner>
+      </Wrap>
+    );
+  }
+
+  // ── CHOOSE LEVEL ─────────────────────────────────────────────────────────
+  if(step==="choose-level") return (
+    <Wrap>
+      <TopBar left={<Logo/>} right={<StepLabel current={3} total={5}/>}/>
+      <Inner pt={28}>
+        <ProgressDots total={5} current={2}/>
+        <H1>Quanto queres poupar?</H1>
+        <Sub>Esta semana poupaste <strong style={{color:"#3bdfb0"}}>{fmt(spendDiff)}</strong> vs o mês passado. Escolhe quanto guardamos automaticamente.</Sub>
+        <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:28}}>
+          {SAVINGS_LEVELS.map(l=>{const est=levelEst(l.id);const active=level===l.id;return(
+            <div key={l.id} onClick={()=>setLevel(l.id)} style={{background:active?l.color+"12":"#111f35",border:`2px solid ${active?l.color:"#1e3a5f"}`,borderRadius:18,padding:"18px 20px",cursor:"pointer",transition:"all 0.2s",display:"flex",alignItems:"center",gap:16}}>
+              <div style={{fontSize:32}}>{l.emoji}</div>
+              <div style={{flex:1}}><div style={{fontSize:16,fontWeight:800,color:active?l.color:"#e2e8f0"}}>{l.label}</div><div style={{fontSize:13,color:"#64748b",marginTop:2}}>{l.desc}</div></div>
+              <div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:800,color:active?l.color:"#475569"}}>{est>0?fmt(est):"—"}</div><div style={{fontSize:11,color:"#475569"}}>esta semana</div></div>
+            </div>
+          );})}
+        </div>
+        <PrimaryBtn onClick={()=>setStep("choose-roundup")}>Continuar</PrimaryBtn>
+        <div style={{fontSize:12,color:"#475569",textAlign:"center",marginTop:10}}>Podes alterar o nível a qualquer momento</div>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── CHOOSE ROUNDUP ───────────────────────────────────────────────────────
+  if(step==="choose-roundup") return (
+    <Wrap>
+      <TopBar left={<button onClick={()=>setStep("choose-level")} style={{background:"none",border:"none",color:"#64748b",fontSize:14,cursor:"pointer",padding:0}}>← Voltar</button>} right={<StepLabel current={4} total={5}/>}/>
+      <Inner pt={28}>
+        <ProgressDots total={5} current={3}/>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:52,marginBottom:14}}>🪙</div>
+          <H1>Ativar Round-ups?</H1>
+          <Sub>Cada compra é arredondada ao euro acima. O troco vai direto para a tua poupança.</Sub>
+        </div>
+        <div style={{background:"#0a1628",borderRadius:16,padding:"16px",marginBottom:24,border:"1px solid #1e3a5f"}}>
+          <div style={{fontSize:13,color:"#64748b",marginBottom:10}}>Por exemplo, esta semana:</div>
+          {TRANSACTIONS.slice(0,4).map(t=>(
+            <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #1e3a5f33"}}>
+              <span style={{fontSize:13,color:"#94a3b8"}}>{t.icon} {t.desc}</span>
+              <span style={{fontSize:13,color:"#f59e0b",fontWeight:700}}>+{fmt(roundUp(t.amount))} 🪙</span>
+            </div>
+          ))}
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:10}}>
+            <span style={{fontSize:13,color:"#64748b"}}>Total round-ups</span>
+            <span style={{fontSize:15,fontWeight:800,color:"#f59e0b"}}>{fmt(sumRU(TRANSACTIONS))}</span>
+          </div>
+        </div>
+        <PrimaryBtn onClick={()=>{setRoundupOn(true);setStep("success");}}>✅ Sim, quero round-ups!</PrimaryBtn>
+        <GhostBtn onClick={()=>{setRoundupOn(false);setStep("success");}}>Não, só poupança automática</GhostBtn>
+      </Inner>
+    </Wrap>
+  );
+
+  // ── SUCCESS ──────────────────────────────────────────────────────────────
+  if(step==="success"){
+    const sl=SAVINGS_LEVELS.find(l=>l.id===level);
+    const est=levelEst(level)+(roundupOn?sumRU(TRANSACTIONS):0);
+    const firstName=authName.split(" ")[0]||"João";
+    return (
+      <Wrap>
+        <Inner center>
+          <div style={{animation:"pop 0.5s ease",marginBottom:24,textAlign:"center"}}>
+            <div style={{width:90,height:90,borderRadius:"50%",background:"linear-gradient(135deg,#3bdfb020,#3bdfb040)",border:"3px solid #3bdfb0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:44,margin:"0 auto"}}>🎉</div>
+          </div>
+          <div style={{animation:"slideUp 0.5s ease 0.2s both",textAlign:"center"}}>
+            <div style={{fontSize:26,fontWeight:800,color:"#fff",marginBottom:8,letterSpacing:"-0.5px"}}>Tudo pronto, {firstName}!</div>
+            <div style={{fontSize:14,color:"#64748b",lineHeight:1.7,marginBottom:28}}>A Aura está agora a trabalhar no background. Toda a segunda-feira analisamos os teus gastos e guardamos automaticamente.</div>
+            <div style={{background:"#111f35",borderRadius:20,padding:"20px",marginBottom:28,border:"1px solid #1e3a5f33",textAlign:"left"}}>
+              <div style={{fontSize:12,color:"#64748b",marginBottom:14,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px"}}>O teu setup</div>
+              {[["Conta",authEmail||"joao@email.com","#fff"],["Banco ligado",`${bank.emoji} ${bank.short}`,"#fff"],["Nível de poupança",`${sl.emoji} ${sl.label}`,sl.color],["Round-ups",roundupOn?"✅ Ativo":"❌ Inativo",roundupOn?"#f59e0b":"#475569"]].map(([l,v,c])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:4}}><span style={{fontSize:14,color:"#94a3b8"}}>{l}</span><span style={{fontSize:14,fontWeight:700,color:c}}>{v}</span></div>
+              ))}
+              <div style={{height:1,background:"#1e3a5f",margin:"14px 0"}}/>
+              <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:14,color:"#94a3b8"}}>Estimativa esta semana</span><span style={{fontSize:18,fontWeight:800,color:"#3bdfb0"}}>{fmt(est)}</span></div>
+            </div>
+            <PrimaryBtn onClick={()=>onComplete({bank,level,roundupOn,user:{name:authName||"João Pereira",email:authEmail||"joao@email.com"}})}>
+              🚀 Ir para a app
+            </PrimaryBtn>
+            <div style={{fontSize:12,color:"#475569",marginTop:14,lineHeight:1.6}}>Processamento automático toda a <strong style={{color:"#94a3b8"}}>segunda-feira</strong>.</div>
+          </div>
+        </Inner>
+      </Wrap>
+    );
+  }
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function MainApp({config}){
+  const {bank,level:initLevel,roundupOn:initRoundup,user}=config;
+  const firstName=user.name.split(" ")[0];
+  const [tab,setTab]           = useState("dashboard");
+  const [level,setLevel]       = useState(initLevel);
+  const [autoSaveOn,setAutoSaveOn] = useState(true);
+  const [roundupOn,setRoundupOn]   = useState(initRoundup);
+  const [goals,setGoals]       = useState(DEFAULT_GOALS);
+  const [savedTotal]           = useState(92.95);
+  const [showGoalForm,setShowGoalForm] = useState(false);
+  const [newGoal,setNewGoal]   = useState({name:"",target:"",emoji:"🎯"});
+  const [goalError,setGoalError] = useState("");
+  const [notif,setNotif]       = useState(null);
+  const [histFilter,setHistFilter] = useState("all");
+  const [withdrawStep,setWithdrawStep] = useState(null);
+  const [withdrawAmt,setWithdrawAmt]   = useState("");
+  const [simYears,setSimYears] = useState(5);
+  const [userName,setUserName] = useState(user.name);
+  const [editingName,setEditingName] = useState(false);
+  const connectedBank=bank;
+
+  const thisWeekSpend=TRANSACTIONS.reduce((s,t)=>s+t.amount,0);
+  const spendDiff    =parseFloat((SPEND_LAST_MONTH-thisWeekSpend).toFixed(2));
+  const selLevel     =SAVINGS_LEVELS.find(l=>l.id===level);
+  const autoSaveAmt  =autoSaveOn&&spendDiff>0?parseFloat((spendDiff*selLevel.rate).toFixed(2)):0;
+  const levelEst     =id=>{const r={suave:0.30,moderado:0.60,intenso:1.00};return spendDiff>0?parseFloat((spendDiff*r[id]).toFixed(2)):0;};
+  const roundups     =roundupOn?sumRU(TRANSACTIONS):0;
+  const weeklyTotal  =parseFloat((autoSaveAmt+roundups).toFixed(2));
+  const animTotal    =useCountUp(savedTotal,900);
+  const STREAK       =5;
+  const pctSum       =goals.reduce((s,g)=>s+g.pct,0);
+  const filtHist     =HISTORY.filter(h=>histFilter==="all"||h.type===histFilter);
+  const hMeta        =t=>({auto:{icon:"⚡",color:"#3bdfb0",bg:"#3bdfb015",label:"Poupança automática"},roundup:{icon:"🪙",color:"#f59e0b",bg:"#f59e0b15",label:"Round-ups"},skip:{icon:"⏭️",color:"#475569",bg:"#47556915",label:"Sem poupança"}}[t]);
+  const simWeekly    =weeklyTotal>0?weeklyTotal:14;
+  const simTotal     =simWeekly*52*simYears;
+  const simFinal     =parseFloat((simTotal+simTotal*0.03*simYears).toFixed(2));
+
+  function notify(msg,type="success"){setNotif({msg,type});setTimeout(()=>setNotif(null),3200);}
+  function addGoal(){
+    if(!newGoal.name.trim())return setGoalError("Dá um nome ao objetivo.");
+    if(!newGoal.target||isNaN(newGoal.target)||+newGoal.target<=0)return setGoalError("Define um valor válido.");
+    if(goals.length>=3)return setGoalError("Máximo de 3 objetivos.");
+    const cols=["#06b6d4","#8b5cf6","#f59e0b"];
+    const g={id:Date.now(),name:newGoal.name.trim(),target:+newGoal.target,emoji:newGoal.emoji,color:cols[goals.length]||"#06b6d4",pct:0};
+    const list=[...goals,g];const share=Math.floor(100/list.length);
+    setGoals(list.map((gl,i)=>({...gl,pct:i===list.length-1?100-share*(list.length-1):share})));
+    setNewGoal({name:"",target:"",emoji:"🎯"});setGoalError("");setShowGoalForm(false);
+    notify(`Objetivo "${g.name}" criado!`);
+  }
+  function updatePct(id,val){const o=goals.filter(g=>g.id!==id);if(o.reduce((s,g)=>s+g.pct,0)+val>100)return;setGoals(goals.map(g=>g.id===id?{...g,pct:val}:g));}
+  function removeGoal(id){const r=goals.filter(g=>g.id!==id);if(!r.length){setGoals([]);return;}const sh=Math.floor(100/r.length);setGoals(r.map((g,i)=>({...g,pct:i===r.length-1?100-sh*(r.length-1):sh})));}
+
+  const C={
+    app:{minHeight:"100vh",background:"#0a1628",color:"#e2e8f0",fontFamily:"'DM Sans','Segoe UI',sans-serif",display:"flex",flexDirection:"column",alignItems:"center",paddingBottom:80},
+    hdr:{width:"100%",maxWidth:420,padding:"28px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center"},
+    page:{width:"100%",maxWidth:420,padding:"0 16px"},
+    card:{background:"#111f35",borderRadius:20,padding:"18px 20px",marginBottom:14,border:"1px solid #1e3a5f33"},
+    balCard:{background:"linear-gradient(135deg,#0f3460,#16213e)",borderRadius:24,padding:"26px 22px",marginBottom:16,border:"1px solid #3bdfb020",position:"relative",overflow:"hidden"},
+    div:{height:1,background:"#1e3a5f44",margin:"14px 0"},
+    tRow:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12},
+    lc:(a,c)=>({flex:1,borderRadius:14,padding:"12px 6px",textAlign:"center",cursor:"pointer",border:a?`2px solid ${c}`:"2px solid #1e3a5f",background:a?`${c}12`:"#0a1628",transition:"all 0.2s"}),
+    btn:{background:"linear-gradient(135deg,#3bdfb0,#0ea5e9)",color:"#0a1628",border:"none",borderRadius:16,padding:"14px 0",width:"100%",fontSize:15,fontWeight:800,cursor:"pointer"},
+    bGhost:{background:"transparent",color:"#3bdfb0",border:"2px solid #3bdfb0",borderRadius:16,padding:"12px 0",width:"100%",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10},
+    bRed:{background:"transparent",color:"#f43f5e",border:"2px solid #f43f5e30",borderRadius:16,padding:"12px 0",width:"100%",fontSize:14,fontWeight:700,cursor:"pointer"},
+    tabs:{position:"fixed",bottom:0,left:0,right:0,background:"#111f35",borderTop:"1px solid #1e3a5f",display:"flex",justifyContent:"space-around",padding:"10px 0 18px",zIndex:100},
+    tab:a=>({display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer",padding:"4px 10px",color:a?"#3bdfb0":"#475569",transition:"color 0.2s"}),
+    notif:t=>({position:"fixed",top:20,left:"50%",transform:"translateX(-50%)",background:t==="success"?"#3bdfb0":"#f43f5e",color:"#0a1628",padding:"12px 24px",borderRadius:50,fontWeight:800,fontSize:13,zIndex:999,whiteSpace:"nowrap",boxShadow:"0 8px 32px rgba(0,0,0,0.4)",animation:"slideDown 0.3s ease"}),
+    input:{background:"#0a1628",border:"1px solid #1e3a5f",borderRadius:12,padding:"12px 14px",color:"#e2e8f0",fontSize:14,width:"100%",marginBottom:10,outline:"none"},
+    slider:{width:"100%",accentColor:"#3bdfb0",cursor:"pointer"},
+    fBtn:a=>({borderRadius:20,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer",border:a?"none":"1px solid #1e3a5f",background:a?"#3bdfb0":"transparent",color:a?"#0a1628":"#64748b",transition:"all 0.2s"}),
+    rowItem:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0",borderBottom:"1px solid #1e3a5f22"},
+  };
+
+  function WithdrawModal(){
+    if(!withdrawStep)return null;
+    const amtNum=parseFloat(withdrawAmt)||0;
+    return (
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+        <div style={{background:"#111f35",borderRadius:"24px 24px 0 0",padding:"28px 24px 40px",width:"100%",maxWidth:420}}>
+          {withdrawStep==="amount"&&<>
+            <div style={{fontSize:18,fontWeight:800,color:"#fff",marginBottom:4}}>Levantar poupança</div>
+            <div style={{fontSize:13,color:"#64748b",marginBottom:20}}>Disponível: <strong style={{color:"#3bdfb0"}}>{fmt(savedTotal)}</strong></div>
+            <input style={{...C.input,fontSize:22,fontWeight:800,textAlign:"center",letterSpacing:"-0.5px"}} type="number" placeholder="0,00€" value={withdrawAmt} onChange={e=>setWithdrawAmt(e.target.value)}/>
+            <div style={{display:"flex",gap:8,marginBottom:20}}>
+              {[10,25,50,"Tudo"].map(v=>(
+                <button key={v} onClick={()=>setWithdrawAmt(v==="Tudo"?savedTotal:v)} style={{flex:1,background:"#0a1628",border:"1px solid #1e3a5f",borderRadius:10,padding:"8px 0",color:"#94a3b8",fontSize:13,fontWeight:700,cursor:"pointer"}}>{v==="Tudo"?"Tudo":`${v}€`}</button>
+              ))}
+            </div>
+            <button style={C.btn} onClick={()=>{if(amtNum>0&&amtNum<=savedTotal)setWithdrawStep("confirm");}}>Continuar</button>
+            <button style={{...C.bGhost,marginTop:8}} onClick={()=>setWithdrawStep(null)}>Cancelar</button>
+          </>}
+          {withdrawStep==="confirm"&&<>
+            <div style={{fontSize:18,fontWeight:800,color:"#fff",marginBottom:20}}>Confirmar levantamento</div>
+            <div style={{background:"#0a1628",borderRadius:14,padding:"16px",marginBottom:20}}>
+              <div style={C.rowItem}><span style={{color:"#64748b"}}>Valor</span><span style={{fontWeight:800,color:"#3bdfb0",fontSize:18}}>{fmt(amtNum)}</span></div>
+              <div style={{...C.rowItem,borderBottom:"none"}}><span style={{color:"#64748b"}}>Destino</span><span style={{fontWeight:700,color:"#fff"}}>{connectedBank.emoji} {maskIban(connectedBank.iban)}</span></div>
+            </div>
+            <div style={{fontSize:12,color:"#475569",marginBottom:20,lineHeight:1.6}}>O montante será transferido para a tua conta em 1–2 dias úteis.</div>
+            <button style={C.btn} onClick={()=>setWithdrawStep("done")}>✅ Confirmar</button>
+            <button style={{...C.bGhost,marginTop:8}} onClick={()=>setWithdrawStep("amount")}>← Voltar</button>
+          </>}
+          {withdrawStep==="done"&&<>
+            <div style={{textAlign:"center",padding:"20px 0"}}>
+              <div style={{fontSize:48,marginBottom:16}}>✅</div>
+              <div style={{fontSize:20,fontWeight:800,color:"#fff",marginBottom:8}}>Levantamento efetuado!</div>
+              <div style={{fontSize:13,color:"#64748b",marginBottom:24}}><strong style={{color:"#3bdfb0"}}>{fmt(amtNum)}</strong> chegam à tua conta em 1–2 dias úteis.</div>
+              <button style={C.btn} onClick={()=>{setWithdrawStep(null);setWithdrawAmt("");notify(`${fmt(amtNum)} em caminho! 🏦`);}}>Fechar</button>
+            </div>
+          </>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={C.app}>
+      <style>{GS}</style>
+      {notif&&<div style={C.notif(notif.type)}>{notif.msg}</div>}
+      <WithdrawModal/>
+
+      <div style={C.hdr}>
+        <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.5px",color:"#fff"}}>Aura</div>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{fontSize:11,color:"#3bdfb0",background:"#3bdfb015",borderRadius:8,padding:"4px 10px",fontWeight:700,display:"flex",alignItems:"center",gap:4}}><span>{connectedBank.emoji}</span>{connectedBank.short}</div>
+          <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#3bdfb0,#0ea5e9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#0a1628"}}>{firstName[0]}{user.name.split(" ")[1]?.[0]||""}</div>
+        </div>
+      </div>
+
+      <div style={{...C.page,padding:"14px 16px 0"}}>
+        <div style={{fontSize:13,color:"#64748b",marginBottom:2}}>Olá, {firstName} 👋</div>
+        <div style={{fontSize:18,fontWeight:700,color:"#e2e8f0",marginBottom:18}}>A tua poupança inteligente</div>
+      </div>
+
+      <div style={C.page}>
+
+        {/* ══ DASHBOARD ══ */}
+        {tab==="dashboard"&&<>
+          <div style={{background:"linear-gradient(135deg,#f59e0b15,#f43f5e15)",border:"1px solid #f59e0b30",borderRadius:16,padding:"12px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+            <span style={{fontSize:26}}>🔥</span>
+            <div style={{flex:1}}><div style={{fontSize:14,fontWeight:800,color:"#f59e0b"}}>{STREAK} semanas seguidas a poupar!</div><div style={{fontSize:12,color:"#64748b",marginTop:2}}>Continua assim — não quebres o streak! 💪</div></div>
+            <div style={{fontSize:20,fontWeight:800,color:"#f59e0b"}}>{STREAK}🔥</div>
+          </div>
+
+          <div style={C.balCard}>
+            <div style={{position:"absolute",top:-30,right:-30,width:110,height:110,borderRadius:"50%",background:"#3bdfb010"}}/>
+            <div style={{fontSize:12,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Poupança Total</div>
+            <div style={{fontSize:42,fontWeight:800,color:"#fff",letterSpacing:"-2px",lineHeight:1}}><span style={{color:"#3bdfb0"}}>€</span>{animTotal.toFixed(2).replace(".",",")}</div>
+            <div style={{display:"flex",gap:8,marginTop:14,flexWrap:"wrap"}}>
+              <div style={{background:"#0a1628",borderRadius:10,padding:"7px 12px",fontSize:12,color:"#94a3b8",display:"flex",alignItems:"center",gap:5}}>📅 Esta semana <span style={{color:"#3bdfb0",fontWeight:700}}>{weeklyTotal>0?fmt(weeklyTotal):"—"}</span></div>
+              {roundupOn&&<div style={{background:"#0a1628",borderRadius:10,padding:"7px 12px",fontSize:12,color:"#94a3b8",display:"flex",alignItems:"center",gap:5}}>🪙 <span style={{color:"#3bdfb0",fontWeight:700}}>{fmt(roundups)}</span></div>}
+            </div>
+            <button onClick={()=>setWithdrawStep("amount")} style={{marginTop:14,background:"#3bdfb015",border:"1px solid #3bdfb030",borderRadius:10,padding:"8px 16px",color:"#3bdfb0",fontSize:13,fontWeight:700,cursor:"pointer"}}>↑ Levantar poupança</button>
+          </div>
+
+          <div style={{...C.card,background:"#0d1e38",border:"1px solid #3bdfb025"}}>
+            <Badge color="#3bdfb0">⚡ Funcionalidade Principal</Badge>
+            <div style={C.tRow}>
+              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,color:"#fff"}}>Poupança Automática Semanal</div><div style={{fontSize:12,color:"#64748b",marginTop:3,lineHeight:1.5}}>Comparamos os teus gastos com a semana equivalente do mês passado.</div></div>
+              <Toggle on={autoSaveOn} onChange={setAutoSaveOn} color="#3bdfb0"/>
+            </div>
+            {autoSaveOn&&<>
+              <div style={C.div}/>
+              <div style={{background:"#0a1628",borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+                {spendDiff>0?(<><div style={{fontSize:13,color:"#94a3b8",lineHeight:1.6}}>Esta semana: <strong style={{color:"#fff"}}>{fmt(thisWeekSpend)}</strong> vs <strong style={{color:"#fff"}}>{fmt(SPEND_LAST_MONTH)}</strong> no mês passado</div><div style={{marginTop:8,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:20}}>🎉</span><span style={{fontSize:14,fontWeight:700,color:"#3bdfb0"}}>Poupaste {fmt(spendDiff)} esta semana!</span></div></>):(<div style={{fontSize:13,color:"#94a3b8",lineHeight:1.6}}>Gastaste <strong style={{color:"#f43f5e"}}>{fmt(Math.abs(spendDiff))}</strong> a mais do que no mês passado.</div>)}
+              </div>
+              <div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Nível de poupança:</div>
+              <div style={{display:"flex",gap:8}}>
+                {SAVINGS_LEVELS.map(l=>{const amt=levelEst(l.id);return(
+                  <div key={l.id} style={C.lc(level===l.id,l.color)} onClick={()=>setLevel(l.id)}>
+                    <div style={{fontSize:22,marginBottom:4}}>{l.emoji}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:level===l.id?l.color:"#64748b"}}>{l.label}</div>
+                    <div style={{fontSize:11,color:"#64748b",marginTop:2}}>{l.desc}</div>
+                    <div style={{fontSize:15,fontWeight:800,color:level===l.id?l.color:"#475569",marginTop:8}}>{amt>0?fmt(amt):"—"}</div>
+                    <div style={{fontSize:10,color:"#475569"}}>esta semana</div>
+                  </div>
+                );})}
+              </div>
+            </>}
+          </div>
+
+          <div style={{...C.card,border:"1px solid #f59e0b20"}}>
+            <Badge color="#f59e0b">🪙 Funcionalidade Adicional</Badge>
+            <div style={C.tRow}>
+              <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,color:"#fff"}}>Round-ups</div><div style={{fontSize:12,color:"#64748b",marginTop:3,lineHeight:1.5}}>O troco de cada compra vai para a tua poupança.{roundupOn&&<span style={{color:"#f59e0b"}}> Esta semana: <strong>{fmt(sumRU(TRANSACTIONS))}</strong></span>}</div></div>
+              <Toggle on={roundupOn} onChange={setRoundupOn} color="#f59e0b"/>
+            </div>
+          </div>
+
+          {weeklyTotal>0&&<div style={{...C.card,background:"#0d2a1e",border:"1px solid #3bdfb030",marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:14,color:"#94a3b8"}}>A guardar esta semana</span><span style={{fontSize:24,fontWeight:800,color:"#3bdfb0"}}>{fmt(weeklyTotal)}</span></div>
+            <div style={{fontSize:11,color:"#3bdfb0",marginTop:8}}>✅ Processado automaticamente toda a segunda-feira</div>
+          </div>}
+        </>}
+
+        {/* ══ RELATÓRIOS ══ */}
+        {tab==="reports"&&<div style={{marginTop:4}}>
+          <div style={C.card}>
+            <div style={{fontSize:15,fontWeight:700,color:"#e2e8f0",marginBottom:4}}>Gastos mensais</div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>Últimos 6 meses</div>
+            <div style={{display:"flex",alignItems:"flex-end",gap:8,height:100,marginBottom:8}}>
+              {MONTHLY_SPENDING.map((m,i)=>{const max=Math.max(...MONTHLY_SPENDING.map(x=>x.amount));const h=Math.round((m.amount/max)*100);const isL=i===MONTHLY_SPENDING.length-1;return(
+                <div key={m.month} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                  <div style={{fontSize:10,color:isL?"#3bdfb0":"#475569",fontWeight:700}}>{isL?fmt(m.amount):""}</div>
+                  <div style={{width:"100%",height:`${h}%`,borderRadius:"6px 6px 0 0",background:isL?"linear-gradient(180deg,#3bdfb0,#0ea5e9)":"#1e3a5f"}}/>
+                </div>
+              );})}
+            </div>
+            <div style={{display:"flex",gap:8}}>{MONTHLY_SPENDING.map((m,i)=><div key={m.month} style={{flex:1,textAlign:"center",fontSize:11,color:i===MONTHLY_SPENDING.length-1?"#3bdfb0":"#475569",fontWeight:i===MONTHLY_SPENDING.length-1?700:400}}>{m.month}</div>)}</div>
+          </div>
+          <div style={C.card}>
+            <div style={{fontSize:15,fontWeight:700,color:"#e2e8f0",marginBottom:16}}>Gastos por categoria</div>
+            {CATEGORIES.map(cat=>{const pct=Math.round((cat.amount/totalCatSpend)*100);return(
+              <div key={cat.name} style={{marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:13,color:"#e2e8f0"}}>{cat.icon} {cat.name}</span><span style={{fontSize:13,fontWeight:700,color:"#e2e8f0"}}>{fmt(cat.amount)} <span style={{color:"#64748b",fontWeight:400}}>({pct}%)</span></span></div>
+                <div style={{background:"#0a1628",borderRadius:99,height:7,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:cat.color,borderRadius:99}}/></div>
+              </div>
+            );})}
+          </div>
+          <div style={{...C.card,background:"#0d1e38",border:"1px solid #3bdfb025"}}>
+            <Badge color="#3bdfb0">🔭 Simulador de Poupança</Badge>
+            <div style={{fontSize:15,fontWeight:700,color:"#fff",marginBottom:4}}>Se continuares assim…</div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>Poupando <strong style={{color:"#3bdfb0"}}>{fmt(simWeekly)}/semana</strong> com juro estimado de 3% a.a.</div>
+            <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Em quantos anos? <strong style={{color:"#fff"}}>{simYears} {simYears===1?"ano":"anos"}</strong></div>
+            <input type="range" min={1} max={30} value={simYears} onChange={e=>setSimYears(+e.target.value)} style={{...C.slider,marginBottom:16}}/>
+            <div style={{display:"flex",gap:8,marginBottom:20}}>
+              {[1,3,5,10,20,30].map(y=><button key={y} onClick={()=>setSimYears(y)} style={{flex:1,background:simYears===y?"#3bdfb0":"#0a1628",border:`1px solid ${simYears===y?"#3bdfb0":"#1e3a5f"}`,borderRadius:10,padding:"8px 0",color:simYears===y?"#0a1628":"#64748b",fontSize:12,fontWeight:700,cursor:"pointer"}}>{y}a</button>)}
+            </div>
+            <div style={{background:"#0a1628",borderRadius:16,padding:"20px",textAlign:"center"}}>
+              <div style={{fontSize:12,color:"#64748b",marginBottom:4}}>Terias poupado</div>
+              <div style={{fontSize:36,fontWeight:800,color:"#3bdfb0",letterSpacing:"-1px"}}>{fmt(simFinal)}</div>
+              <div style={{fontSize:12,color:"#475569",marginTop:4}}>em {simYears} {simYears===1?"ano":"anos"}</div>
+            </div>
+          </div>
+        </div>}
+
+        {/* ══ HISTÓRICO ══ */}
+        {tab==="history"&&<div style={{marginTop:4}}>
+          <div style={{...C.card,background:"linear-gradient(135deg,#0f3460,#16213e)",border:"1px solid #3bdfb025",marginBottom:16}}>
+            <div style={{fontSize:12,color:"#94a3b8",marginBottom:6,textTransform:"uppercase",letterSpacing:"0.6px"}}>Guardado pela Aura</div>
+            <div style={{display:"flex",gap:16}}>
+              <div><div style={{fontSize:24,fontWeight:800,color:"#3bdfb0"}}>€92,95</div><div style={{fontSize:11,color:"#64748b"}}>Total poupado</div></div>
+              <div style={{width:1,background:"#1e3a5f"}}/>
+              <div><div style={{fontSize:24,fontWeight:800,color:"#f59e0b"}}>€15,55</div><div style={{fontSize:11,color:"#64748b"}}>Em round-ups</div></div>
+              <div style={{width:1,background:"#1e3a5f"}}/>
+              <div><div style={{fontSize:24,fontWeight:800,color:"#f59e0b"}}>🔥{STREAK}</div><div style={{fontSize:11,color:"#64748b"}}>Semanas</div></div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:16}}>
+            {[["all","Tudo"],["auto","Automático"],["roundup","Round-ups"],["skip","Ignorado"]].map(([k,l])=>(
+              <button key={k} style={C.fBtn(histFilter===k)} onClick={()=>setHistFilter(k)}>{l}</button>
+            ))}
+          </div>
+          {filtHist.map((h,i)=>{const m=hMeta(h.type);return(
+            <div key={h.id} style={{display:"flex",gap:12}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:32,flexShrink:0}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:m.bg,border:`2px solid ${m.color}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>{m.icon}</div>
+                {i<filtHist.length-1&&<div style={{width:2,flex:1,background:"#1e3a5f",margin:"4px 0",minHeight:20}}/>}
+              </div>
+              <div style={{flex:1,paddingBottom:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div><div style={{fontSize:13,fontWeight:700,color:h.type==="skip"?"#475569":"#e2e8f0"}}>{m.label}</div><div style={{fontSize:11,color:"#475569",marginTop:1}}>{h.week} · {h.date}</div></div>
+                  {h.amount>0&&<div style={{fontSize:16,fontWeight:800,color:m.color}}>+{fmt(h.amount)}</div>}
+                </div>
+                <div style={{fontSize:12,color:"#64748b",marginTop:4,background:"#111f35",borderRadius:8,padding:"6px 10px"}}>{h.note}{h.level&&<span style={{color:"#3bdfb0"}}> · Nível {h.level}</span>}</div>
+              </div>
+            </div>
+          );})}
+        </div>}
+
+        {/* ══ OBJETIVOS ══ */}
+        {tab==="goals"&&<div style={{marginTop:4}}>
+          {goals.map(g=>{
+            const saved=savedTotal*(g.pct/100),progress=Math.min((saved/g.target)*100,100),wk=weeklyTotal*g.pct/100,wl=wk>0?Math.ceil((g.target-saved)/wk):null;
+            return <div key={g.id} style={{background:"#0f2744",borderRadius:16,padding:"16px",marginBottom:12,border:`1px solid ${g.color}30`}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <CircleProgress pct={progress} color={g.color} size={52}/>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:20}}>{g.emoji}</span><span style={{fontSize:15,fontWeight:700,color:"#e2e8f0"}}>{g.name}</span></div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{fmt(saved)} de {fmt(g.target)} · {progress.toFixed(0)}%</div>
+                  {wl&&<div style={{fontSize:11,color:g.color,marginTop:2}}>~{wl} semanas para atingir</div>}
+                </div>
+                <button onClick={()=>removeGoal(g.id)} style={{background:"none",border:"none",color:"#475569",cursor:"pointer",fontSize:20,padding:4}}>×</button>
+              </div>
+              <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>% da poupança: <strong style={{color:g.color}}>{g.pct}%</strong>{wk>0&&<span style={{color:"#475569"}}> · +{fmt(wk)}/semana</span>}</div>
+              <input type="range" min={0} max={100} value={g.pct} onChange={e=>updatePct(g.id,+e.target.value)} style={C.slider}/>
+            </div>;
+          })}
+          {pctSum!==100&&goals.length>0&&<div style={{fontSize:12,color:"#f59e0b",marginBottom:12,textAlign:"center"}}>⚠️ Os objetivos somam {pctSum}% — devem totalizar 100%</div>}
+          {goals.length<3&&!showGoalForm&&<button style={C.bGhost} onClick={()=>setShowGoalForm(true)}>+ Adicionar objetivo</button>}
+          {showGoalForm&&<div style={C.card}>
+            <div style={{fontSize:15,fontWeight:700,color:"#e2e8f0",marginBottom:14}}>Novo objetivo</div>
+            <input style={C.input} placeholder="Nome (ex: Viagem ao Japão)" value={newGoal.name} onChange={e=>setNewGoal(g=>({...g,name:e.target.value}))}/>
+            <input style={C.input} placeholder="Valor objetivo (€)" type="number" value={newGoal.target} onChange={e=>setNewGoal(g=>({...g,target:e.target.value}))}/>
+            <div style={{display:"flex",gap:10,marginBottom:14}}>{["🎯","🏖️","🚗","🏠","💍","🎓","🌍","💻"].map(em=><span key={em} onClick={()=>setNewGoal(g=>({...g,emoji:em}))} style={{fontSize:24,cursor:"pointer",opacity:newGoal.emoji===em?1:0.35,transition:"opacity 0.2s"}}>{em}</span>)}</div>
+            {goalError&&<div style={{color:"#f43f5e",fontSize:12,marginBottom:8}}>{goalError}</div>}
+            <button style={C.btn} onClick={addGoal}>Criar objetivo</button>
+            <button style={{...C.bGhost,marginTop:8}} onClick={()=>{setShowGoalForm(false);setGoalError("");}}>Cancelar</button>
+          </div>}
+        </div>}
+
+        {/* ══ PERFIL ══ */}
+        {tab==="profile"&&<div style={{marginTop:4}}>
+          <div style={{...C.card,textAlign:"center",paddingTop:28,paddingBottom:24}}>
+            <div style={{width:72,height:72,borderRadius:"50%",background:"linear-gradient(135deg,#3bdfb0,#0ea5e9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,fontWeight:800,color:"#0a1628",margin:"0 auto 14px"}}>{userName[0]}{userName.split(" ")[1]?.[0]||""}</div>
+            {editingName?(
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <input style={{...C.input,marginBottom:0,textAlign:"center"}} value={userName} onChange={e=>setUserName(e.target.value)}/>
+                <button onClick={()=>{setEditingName(false);notify("Nome atualizado!");}} style={{background:"#3bdfb0",border:"none",borderRadius:10,padding:"12px 14px",color:"#0a1628",fontWeight:800,cursor:"pointer",flexShrink:0}}>✓</button>
+              </div>
+            ):(
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                <div style={{fontSize:18,fontWeight:800,color:"#fff"}}>{userName}</div>
+                <button onClick={()=>setEditingName(true)} style={{background:"none",border:"none",color:"#475569",cursor:"pointer",fontSize:14}}>✏️</button>
+              </div>
+            )}
+            <div style={{fontSize:13,color:"#64748b",marginTop:4}}>{user.email}</div>
+            <div style={{display:"flex",justifyContent:"center",gap:20,marginTop:16}}>
+              <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#3bdfb0"}}>€92,95</div><div style={{fontSize:11,color:"#64748b"}}>Poupado</div></div>
+              <div style={{width:1,background:"#1e3a5f"}}/>
+              <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#f59e0b"}}>🔥{STREAK}</div><div style={{fontSize:11,color:"#64748b"}}>Streak</div></div>
+              <div style={{width:1,background:"#1e3a5f"}}/>
+              <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#fff"}}>8</div><div style={{fontSize:11,color:"#64748b"}}>Semanas</div></div>
+            </div>
+          </div>
+          <div style={C.card}>
+            <div style={{fontSize:13,fontWeight:700,color:"#64748b",marginBottom:12,textTransform:"uppercase",letterSpacing:"0.5px"}}>Conta Bancária</div>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:44,height:44,borderRadius:12,background:connectedBank.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{connectedBank.emoji}</div>
+              <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{connectedBank.name}</div><div style={{fontSize:12,color:"#64748b"}}>{maskIban(connectedBank.iban)}</div></div>
+              <div style={{background:"#3bdfb020",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#3bdfb0",fontWeight:700}}>Ativa</div>
+            </div>
+            <div style={C.div}/>
+            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,color:"#64748b"}}>Última sincronização</span><span style={{fontSize:13,color:"#3bdfb0",fontWeight:700}}>Hoje, 08:12</span></div>
+          </div>
+          <div style={C.card}>
+            <div style={{fontSize:13,fontWeight:700,color:"#64748b",marginBottom:12,textTransform:"uppercase",letterSpacing:"0.5px"}}>Preferências</div>
+            <div style={C.rowItem}><span style={{fontSize:14,color:"#e2e8f0"}}>Nível de poupança</span><span style={{fontSize:13,fontWeight:700,color:selLevel.color}}>{selLevel.emoji} {selLevel.label}</span></div>
+            <div style={C.rowItem}><span style={{fontSize:14,color:"#e2e8f0"}}>Round-ups</span><Toggle on={roundupOn} onChange={setRoundupOn} color="#f59e0b"/></div>
+            <div style={{...C.rowItem,borderBottom:"none"}}><span style={{fontSize:14,color:"#e2e8f0"}}>Poupança automática</span><Toggle on={autoSaveOn} onChange={setAutoSaveOn} color="#3bdfb0"/></div>
+          </div>
+          <div style={{...C.card,background:"linear-gradient(135deg,#0f3460,#16213e)",border:"1px solid #3bdfb025"}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#64748b",marginBottom:10,textTransform:"uppercase",letterSpacing:"0.5px"}}>🎁 Convida um amigo</div>
+            <div style={{fontSize:14,color:"#e2e8f0",marginBottom:4}}>Partilha a Aura e ambos ganham <strong style={{color:"#3bdfb0"}}>+5€ na poupança</strong></div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:14}}>O teu código:</div>
+            <div style={{display:"flex",gap:10,alignItems:"center"}}>
+              <div style={{flex:1,background:"#0a1628",borderRadius:12,padding:"12px 16px",fontSize:16,fontWeight:800,color:"#3bdfb0",letterSpacing:"2px",textAlign:"center"}}>{firstName.toUpperCase()}2025</div>
+              <button onClick={()=>notify("Código copiado! 📋")} style={{background:"#3bdfb0",border:"none",borderRadius:12,padding:"12px 16px",color:"#0a1628",fontWeight:800,cursor:"pointer",fontSize:13,flexShrink:0}}>Copiar</button>
+            </div>
+          </div>
+          <div style={C.card}>
+            <div style={{fontSize:13,fontWeight:700,color:"#64748b",marginBottom:12,textTransform:"uppercase",letterSpacing:"0.5px"}}>Segurança & Conta</div>
+            {[["🔐","Alterar password"],["📱","Autenticação a dois fatores"],["📄","Termos e Privacidade"],["💬","Suporte"]].map(([icon,label])=>(
+              <div key={label} style={{...C.rowItem,cursor:"pointer"}} onClick={()=>notify(`${label} — em breve!`)}>
+                <span style={{fontSize:14,color:"#e2e8f0"}}>{icon} {label}</span>
+                <span style={{color:"#475569",fontSize:16}}>›</span>
+              </div>
+            ))}
+          </div>
+          <button style={C.bRed} onClick={()=>notify("Sessão terminada!","error")}>Terminar sessão</button>
+          <div style={{height:8}}/>
+        </div>}
+
+      </div>
+
+      <div style={C.tabs}>
+        {[{id:"dashboard",icon:"🏠",label:"Início"},{id:"reports",icon:"📊",label:"Relatórios"},{id:"history",icon:"📒",label:"Histórico"},{id:"goals",icon:"🎯",label:"Objetivos"},{id:"profile",icon:"👤",label:"Perfil"}].map(t=>(
+          <div key={t.id} style={C.tab(tab===t.id)} onClick={()=>setTab(t.id)}>
+            <span style={{fontSize:19}}>{t.icon}</span>
+            <span style={{fontSize:10,fontWeight:tab===t.id?700:500}}>{t.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function App(){
+  const [config,setConfig]=useState(null);
+  if(!config)return <Onboarding onComplete={setConfig}/>;
+  return <MainApp config={config}/>;
+}

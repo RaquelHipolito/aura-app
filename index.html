@@ -9,6 +9,21 @@
   <meta property="og:description" content="Protótipo da app de poupança automática para o mercado português."/>
   <meta property="og:url" content="https://aura-app.pt"/>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a1628'/><text y='24' x='4' font-size='22'>💚</text></svg>"/>
+  <!-- Google Tag Manager -->
+  <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-WMJ7623Z"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+  </script>
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "zbj4hi2v25");
+  </script>
   <!-- React + ReactDOM (production) -->
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
@@ -18,10 +33,183 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; background: #0a1628; }
     #root { height: 100%; }
+
+    /* ── Feedback button & modal ── */
+    #fb-btn {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      background: #3bdfb0; color: #0a1628;
+      border: none; border-radius: 50px;
+      padding: 12px 20px; font-size: 14px; font-weight: 700;
+      cursor: pointer; box-shadow: 0 4px 20px rgba(59,223,176,0.4);
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'DM Sans', sans-serif;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    #fb-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(59,223,176,0.5); }
+
+    #fb-overlay {
+      display: none; position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      align-items: flex-end; justify-content: center;
+      padding: 0 0 0 0;
+    }
+    #fb-overlay.open { display: flex; }
+
+    #fb-modal {
+      background: #0d1f36; border: 1px solid #1e3a5f;
+      border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 480px;
+      padding: 32px 28px 40px;
+      font-family: 'DM Sans', sans-serif;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(60px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+
+    #fb-modal h2 { color: #fff; font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    #fb-modal p  { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+
+    .fb-label { display: block; color: #94a3b8; font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+
+    .fb-stars { display: flex; gap: 8px; margin-bottom: 24px; }
+    .fb-star { font-size: 32px; cursor: pointer; opacity: 0.3; transition: opacity 0.1s, transform 0.1s; }
+    .fb-star.active { opacity: 1; transform: scale(1.15); }
+
+    .fb-textarea {
+      width: 100%; background: #0a1628; border: 1px solid #1e3a5f;
+      border-radius: 12px; color: #e2e8f0; font-size: 14px;
+      font-family: 'DM Sans', sans-serif; padding: 12px 14px;
+      resize: none; outline: none; margin-bottom: 20px;
+      transition: border-color 0.2s;
+    }
+    .fb-textarea:focus { border-color: #3bdfb0; }
+
+    .fb-use-row { display: flex; gap: 10px; margin-bottom: 24px; }
+    .fb-use-btn {
+      flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #1e3a5f;
+      background: #0a1628; color: #94a3b8; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+    }
+    .fb-use-btn.selected { border-color: #3bdfb0; background: #3bdfb015; color: #3bdfb0; }
+
+    #fb-why-wrap { display: none; margin-bottom: 24px; }
+    #fb-why-wrap.show { display: block; }
+
+    #fb-submit {
+      width: 100%; padding: 14px; border-radius: 12px; border: none;
+      background: #3bdfb0; color: #0a1628; font-size: 15px; font-weight: 800;
+      cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: opacity 0.15s;
+    }
+    #fb-submit:hover { opacity: 0.9; }
+    #fb-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #fb-close {
+      position: absolute; top: 20px; right: 20px;
+      background: none; border: none; color: #475569;
+      font-size: 22px; cursor: pointer; line-height: 1;
+    }
+
+    #fb-thanks { display: none; text-align: center; padding: 16px 0; }
+    #fb-thanks .big { font-size: 48px; margin-bottom: 12px; }
+    #fb-thanks h3 { color: #fff; font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    #fb-thanks p  { color: #64748b; font-size: 14px; }
   </style>
 </head>
 <body>
   <div id="root"></div>
+
+  <!-- ── Feedback button ── -->
+  <button id="fb-btn" onclick="document.getElementById('fb-overlay').classList.add('open')">
+    💬 Feedback
+  </button>
+
+  <!-- ── Feedback modal ── -->
+  <div id="fb-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+    <div id="fb-modal" style="position:relative">
+      <button id="fb-close" onclick="document.getElementById('fb-overlay').classList.remove('open')">×</button>
+
+      <div id="fb-form-wrap">
+        <h2>O que achaste? 👀</h2>
+        <p>Protótipo beta · 2 minutos · ajuda-nos a melhorar</p>
+
+        <!-- Q1: Stars -->
+        <label class="fb-label">Impressão geral</label>
+        <div class="fb-stars" id="fb-stars">
+          <span class="fb-star" data-v="1">⭐</span>
+          <span class="fb-star" data-v="2">⭐</span>
+          <span class="fb-star" data-v="3">⭐</span>
+          <span class="fb-star" data-v="4">⭐</span>
+          <span class="fb-star" data-v="5">⭐</span>
+        </div>
+
+        <!-- Q2: Usarias? -->
+        <label class="fb-label">Usarias esta app?</label>
+        <div class="fb-use-row">
+          <button class="fb-use-btn" data-v="sim" onclick="selectUse(this)">✅ Sim</button>
+          <button class="fb-use-btn" data-v="talvez" onclick="selectUse(this)">🤔 Talvez</button>
+          <button class="fb-use-btn" data-v="nao" onclick="selectUse(this)">❌ Não</button>
+        </div>
+        <div id="fb-why-wrap">
+          <label class="fb-label">Porquê?</label>
+          <textarea class="fb-textarea" id="fb-why" rows="2" placeholder="Conta-nos mais..."></textarea>
+        </div>
+
+        <!-- Q3: O que mais agradou -->
+        <label class="fb-label">O que mais te agradou?</label>
+        <textarea class="fb-textarea" id="fb-liked" rows="2" placeholder="Ex: a ideia, o design, a simplicidade..."></textarea>
+
+        <button id="fb-submit" onclick="submitFeedback()">Enviar feedback →</button>
+      </div>
+
+      <div id="fb-thanks">
+        <div class="big">🙏</div>
+        <h3>Obrigada pelo teu feedback!</h3>
+        <p>Ajudas-nos a construir algo melhor para todos.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Stars interaction
+    let fbRating = 0;
+    document.querySelectorAll('.fb-star').forEach(s => {
+      s.addEventListener('click', () => {
+        fbRating = +s.dataset.v;
+        document.querySelectorAll('.fb-star').forEach((el,i) => el.classList.toggle('active', i < fbRating));
+      });
+    });
+
+    // Use buttons
+    let fbUse = '';
+    function selectUse(btn) {
+      document.querySelectorAll('.fb-use-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      fbUse = btn.dataset.v;
+      document.getElementById('fb-why-wrap').classList.toggle('show', fbUse !== '');
+    }
+
+    // Submit — sends to Formspree (replace with your endpoint) or logs
+    function submitFeedback() {
+      const liked = document.getElementById('fb-liked').value.trim();
+      const why   = document.getElementById('fb-why').value.trim();
+      const payload = { rating: fbRating, would_use: fbUse, liked, why, url: location.href, ts: new Date().toISOString() };
+
+      // Log to console (Clarity will capture this as a custom event)
+      console.log('[Aura Feedback]', JSON.stringify(payload));
+      if(window.clarity) clarity('event', 'feedback_submitted');
+
+      // Optional: POST to Formspree — replace ACTION_URL with your Formspree endpoint
+      const ACTION_URL = 'https://formspree.io/f/REPLACE_ME';
+      if(!ACTION_URL.includes('REPLACE_ME')) {
+        fetch(ACTION_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }).catch(()=>{});
+      }
+
+      document.getElementById('fb-form-wrap').style.display = 'none';
+      document.getElementById('fb-thanks').style.display = 'block';
+      setTimeout(() => document.getElementById('fb-overlay').classList.remove('open'), 2500);
+    }
+  </script>
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef } = React;
